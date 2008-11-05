@@ -4,6 +4,7 @@
 import sys
 import os
 import glob
+import getopt
 from itertools import takewhile
 
 
@@ -40,40 +41,64 @@ def takesuffixwhile(predicate, iterable):
     return reversed_list(takewhile(predicate, reversed_list(iterable)))
 
 
-#if __name__ != "__main__":
-#   sys.exit()
 
+def usage(program):
+    print "Usage:", sys.argv[0], "[--split] [variant-base-name] variant-code"
 
-if len(sys.argv) != 2:
-    print "Usage:", sys.argv[0], "variant-code"
-    sys.exit()
+def main(program, arguments):
+    options, args = getopt.getopt(arguments, "", ["split"])
+    do_split = len(options) > 0
+        
+    if len(args) == 1:
+        supplied_variant_base_name = None
+        variant_code = args[0]
+    elif len(args) == 2:
+        supplied_variant_base_name = args[0]
+        variant_code = args[1]
+    else:
+        usage(program)
+        return 2
 
-variant_code = sys.argv[1]
-stage = 2
-ghc_opts = '-O -fforce-recomp -c -dverbose-core2core -ddump-stg ' + os.environ.get("EXTRA_HC_OPTS", '')
+    stage = 2
+    ghc_opts = '-O -fforce-recomp -c -dverbose-core2core -ddump-stg ' + os.environ.get("EXTRA_HC_OPTS", '')
 
-current_directory = os.getcwd()
-full_directory_path = path_as_list(current_directory)
-ghc_root = os.path.join(*dropsuffixwhile(lambda x: x != 'nofib', full_directory_path)[0:-1])
-nofib_relative = os.path.join(*takesuffixwhile(lambda x: x != 'nofib', full_directory_path))
+    current_directory = os.getcwd()
+    full_directory_path = path_as_list(current_directory)
+    ghc_root = os.path.join(*dropsuffixwhile(lambda x: x != 'nofib', full_directory_path)[0:-1])
+    nofib_relative = os.path.join(*takesuffixwhile(lambda x: x != 'nofib', full_directory_path))
 
-ghc = os.path.join(ghc_root, 'ghc', 'stage' + str(stage) + '-inplace', 'ghc')
-investigation_root, variant_base_name = os.path.split(ghc_root)
+    ghc = os.path.join(ghc_root, 'ghc', 'stage' + str(stage) + '-inplace', 'ghc')
+    investigation_root, inferred_variant_base_name = os.path.split(ghc_root)
 
-variant = variant_base_name + '-' + variant_code
-output_root = os.path.join(investigation_root, 'results', 'code', variant, nofib_relative)
+    if supplied_variant_base_name:
+        variant_base_name = supplied_variant_base_name
+    else:
+        variant_base_name = inferred_variant_base_name
 
-print "Variant:", variant, "Stage:", stage, "Options:", ghc_opts
-print "Output to", output_root
+    variant = variant_base_name + '-' + variant_code
+    output_root = os.path.join(investigation_root, 'results', 'code', variant, nofib_relative)
 
-if not os.path.exists(output_root):
-    os.makedirs(output_root)
+    print "Variant:", variant, "Stage:", stage, "Options:", ghc_opts
+    print "Output to", output_root
 
-for source_path in glob.glob(os.path.join(current_directory, '*.hs')) + glob.glob(os.path.join(current_directory, '*.lhs')):
-    source_file = os.path.basename(source_path)
-    print "Compiling", source_file
+    if not os.path.exists(output_root):
+        os.makedirs(output_root)
+
+    for source_path in glob.glob(os.path.join(current_directory, '*.hs')) + glob.glob(os.path.join(current_directory, '*.lhs')):
+        source_file = os.path.basename(source_path)
+        print "Compiling", source_file
     
-    output_file = open(os.path.join(output_root, source_file), 'w')
-    lines = os.popen(ghc + ' ' + ghc_opts + ' ' + source_path, 'r').readlines()
-    output_file.writelines(lines)
-    output_file.close()
+        output_path = os.path.join(output_root, source_file)
+        output_file = open(output_path, 'w')
+        lines = os.popen(ghc + ' ' + ghc_opts + ' ' + source_path, 'r').readlines()
+        output_file.writelines(lines)
+        output_file.close()
+        
+        if do_split:
+            print "Splitting"
+            os.system('ghc-dump-split ' + output_path)
+
+    return 0
+
+if __name__ == "__main__":
+   sys.exit(main(sys.argv[0], sys.argv[1:]))
