@@ -1,19 +1,79 @@
-#!/bin/bash
+#!/usr/bin/env python
 #
 
-if [ "$#" -ne "1" ]; then
-    echo "Must supply a suffix"
-    exit 1
-fi
+import sys
+import os
+import glob
+from itertools import takewhile
 
-SUFFIX=$1
 
-STAGE=2
-GHC="$GHC_ROOT../../../ghc/stage$STAGE-inplace/ghc"
-GHC_OPTS="-O -fforce-recomp -c -dverbose-core2core -ddump-stg $GHC_OPTS"
-echo "Stage: $STAGE, Options: $GHC_OPTS"
+def path_as_list(path):
+    previous_head = None
+    (head, tail) = os.path.split(path)
+    path_list = []
+    while head != previous_head:
+        path_list = [tail] + path_list
+        previous_head = head
+        (head, tail) = os.path.split(head)
+    
+    path_list = [head] + path_list
+    return path_list
 
-for sourcefile in *.hs *.lhs ; do
-    echo "Compiling $sourcefile.core-$SUFFIX"
-    $GHC $GHC_OPTS $sourcefile >& $sourcefile.core-$SUFFIX
-done
+def reversed_list(what):
+    the_list = list(what)
+    the_list.reverse()
+    return the_list
+
+def dropwhile(predicate, iterable):
+    dropping = True
+    for x in iterable:
+        if dropping and predicate(x):
+            continue
+        else:
+            dropping = False
+            yield x
+
+def dropsuffixwhile(predicate, iterable):
+    return reversed_list(dropwhile(predicate, reversed_list(iterable)))
+
+def takesuffixwhile(predicate, iterable):
+    return reversed_list(takewhile(predicate, reversed_list(iterable)))
+
+
+#if __name__ != "__main__":
+#   sys.exit()
+
+
+if len(sys.argv) != 2:
+    print "Usage:", sys.argv[0], "variant-code"
+    sys.exit()
+
+variant_code = sys.argv[1]
+stage = 2
+ghc_opts = '-O -fforce-recomp -c -dverbose-core2core -ddump-stg ' + os.environ.get("EXTRA_HC_OPTS", '')
+
+current_directory = os.getcwd()
+full_directory_path = path_as_list(current_directory)
+ghc_root = os.path.join(*dropsuffixwhile(lambda x: x != 'nofib', full_directory_path)[0:-1])
+nofib_relative = os.path.join(*takesuffixwhile(lambda x: x != 'nofib', full_directory_path))
+
+ghc = os.path.join(ghc_root, 'ghc', 'stage' + str(stage) + '-inplace', 'ghc')
+investigation_root, variant_base_name = os.path.split(ghc_root)
+
+variant = variant_base_name + '-' + variant_code
+output_root = os.path.join(investigation_root, 'results', 'code', variant, nofib_relative)
+
+print "Variant:", variant, "Stage:", stage, "Options:", ghc_opts
+print "Output to", output_root
+
+if not os.path.exists(output_root):
+    os.makedirs(output_root)
+
+for source_path in glob.glob(os.path.join(current_directory, '*.hs')) + glob.glob(os.path.join(current_directory, '*.lhs')):
+    source_file = os.path.basename(source_path)
+    print "Compiling", source_file
+    
+    output_file = open(os.path.join(output_root, source_file), 'w')
+    lines = os.popen(ghc + ' ' + ghc_opts + ' ' + source_path, 'r').readlines()
+    output_file.writelines(lines)
+    output_file.close()

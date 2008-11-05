@@ -2,14 +2,11 @@
 #
 
 if [ "$#" -ne "1" ]; then
-    echo "Must supply a name"
+    echo "Must supply a suffix"
     exit 1
 fi
 
-NAME=$1
-OUTPUT_ROOT="$GHC_ROOT../../../../results/code/$NAME"
-echo "Output to $OUTPUT_ROOT"
-mkdir $OUTPUT_ROOT
+SUFFIX=$1
 
 STAGE=2
 GHC="$GHC_ROOT../../../ghc/stage$STAGE-inplace/ghc"
@@ -17,6 +14,6 @@ GHC_OPTS="-O -fforce-recomp -c -dverbose-core2core -ddump-stg $GHC_OPTS"
 echo "Stage: $STAGE, Options: $GHC_OPTS"
 
 for sourcefile in *.hs *.lhs ; do
-    echo "Compiling $sourcefile.core"
-    $GHC $GHC_OPTS $sourcefile >& "$OUTPUT_ROOT/$sourcefile.core"
+    echo "Compiling $sourcefile.core-$SUFFIX"
+    $GHC $GHC_OPTS $sourcefile >& $sourcefile.core-$SUFFIX
 done
