@@ -1,0 +1,8 @@
+#!/bin/sh
+#
+
+# These -could- fail if the Makefile isn't ready yet
+make clean && make distclean
+
+sh boot && ./configure && make -j12
+

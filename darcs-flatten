@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+
+FROM=$1
+TO=$2
+
+TO_ABS="`pwd`/to"
+
+# Find the list of files only in $FROM
+diff -rq --exclude=_darcs $FROM $TO | grep "^Only in $FROM" | sed "s/^Only in //" | sed "s/: /\//" | sed "s/^$FROM\///" > files_only_in_from.txt
+# r: Recurse
+# q: Just show whether files differ
+
+# Sync $FROM into $TO without messing with the revision control state. This will
+# handle updating files that have /changed/ in $FROM, deleting those that have
+# been /deleted/ in $FROM (automatically telling Darcs to delete them) and adds
+# the files that were /added/ in $FROM, though we need to tell Darcs about those
+# manually: this is why we built a list of files only in $FROM up earlier
+rsync -az --exclude=_darcs --delete $FROM/ $TO
+# a: Use archive mode (preserve permissions, links etc) - what the hell
+# r: Recurse
+# --delete: Remove things that aren't in $FROM
+
+# Add the files that were only in $FROM to the repo maintained in $TO
+cat files_only_in_from.txt | (cd $TO; xargs -I __loc__ darcs add $TO_ABS/__loc__)
+rm files_only_in_from.txt
+
+# Let the user commit the final patch containing all the changes
+(cd $TO; darcs record --all)

@@ -1,0 +1,54 @@
+#!/bin/bash
+#
+
+### OPTIONS ###
+
+HC_PATH=~/Programming/Checkouts/ghc.working/compiler/stage1/ghc-inplace
+EDITOR=`which mate`
+
+SWITCHES_BEFORE='-O2 -fold-static-argument-transformation'
+SWITCHES_AFTER='-O2 -fno-old-static-argument-transformation'
+
+### SCRIPT ###
+
+# Handle command line arguments
+
+if [ $# -lt 1 ]
+then
+    echo "Usage: $0 source-file [extra-hc-opts]"
+    exit 1
+fi
+
+# NOTE: can't generate code reliably if using -dsuppress-uniques
+SWITCHES_VERBOSE='-dverbose-core2core -dppr-debug -dsuppress-uniques -fno-code'
+
+FILE=$1
+BINARY_FILE=`echo $FILE | sed s/.lhs/.o/ | sed s/.hs/.o/`
+HI_FILE=`echo $FILE | sed s/.lhs/.hi/ | sed s/.hs/.hi/`
+BEFORE_FILE=$1.before.core2core
+AFTER_FILE=$1.after.core2core
+DIFF_FILE=$1.diff.core2core
+
+# Run compiler
+echo "Before..."
+rm -f $BINARY_FILE $HI_FILE
+$HC_PATH $SWITCHES_BEFORE $SWITCHES_VERBOSE $2 $FILE > $BEFORE_FILE
+
+echo "After..."
+rm -f $BINARY_FILE $HI_FILE
+$HC_PATH $SWITCHES_AFTER $SWITCHES_VERBOSE $2 $FILE > $AFTER_FILE
+
+# Report differences
+
+# -s: report identical files, then check if we got them
+diff -s $BEFORE_FILE $AFTER_FILE > $DIFF_FILE
+if [ $? -eq 1 ]
+then
+    $EDITOR $BEFORE_FILE
+    $EDITOR $AFTER_FILE
+    $EDITOR $FILE
+else
+    # Should show error / that there were no changes
+    cat $DIFF_FILE
+fi
+rm $DIFF_FILE

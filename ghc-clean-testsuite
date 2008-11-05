@@ -1,0 +1,4 @@
+#!/bin/sh
+#
+
+find . -iname '*.hi' -o -iname '*.o' -o -iname '*.comp.*' -o -iname '*.normalised' | xargs rm

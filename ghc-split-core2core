@@ -1,0 +1,42 @@
+#!/usr/bin/python
+#
+
+import re, sys, itertools
+
+seperator_regex = re.compile("^==================== ([^=]+) ====================$", re.M)
+
+SANITIZE_PAIRS = {
+        ' ' : '',
+        ':' : ''
+    }
+
+def filename_sanitize(filename):
+    for from_str, to_str in SANITIZE_PAIRS.items():
+        filename = filename.replace(from_str, to_str)
+    return filename
+
+for filename in sys.argv[1:]:
+    file = open(filename, 'r')
+    contents = file.read()
+    file.close()
+    
+    index = 1
+    pending_segment = None
+    for segment in itertools.dropwhile(lambda segment: segment.strip() == '', seperator_regex.split(contents)):
+        segment_stripped = segment.strip()
+        
+        if pending_segment:
+            output_filename = filename + '.' + filename_sanitize(pending_segment) # '.' + str(index).zfill(2) + 
+            output_file = open(output_filename, 'w')
+            output_file.write(segment_stripped)
+            output_file.close()
+            
+            pending_segment = None
+            index = index + 1
+        else:
+            pending_segment = segment_stripped
+            
+            if len(pending_segment) > 100 or len(pending_segment) == 0:
+                raise Exception("Pending segment fails sanity check:\n" + pending_segment)
+            
+            print 'Segment:', pending_segment

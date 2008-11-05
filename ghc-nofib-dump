@@ -1,0 +1,19 @@
+#!/bin/bash
+#
+
+if [ "$#" -ne "1" ]; then
+    echo "Must supply a suffix"
+    exit 1
+fi
+
+SUFFIX=$1
+
+STAGE=2
+GHC="$GHC_ROOT../../../ghc/stage$STAGE-inplace/ghc"
+GHC_OPTS="-O -fforce-recomp -c -dverbose-core2core -ddump-stg $GHC_OPTS"
+echo "Stage: $STAGE, Options: $GHC_OPTS"
+
+for sourcefile in *.hs *.lhs ; do
+    echo "Compiling $sourcefile.core-$SUFFIX"
+    $GHC $GHC_OPTS $sourcefile >& $sourcefile.core-$SUFFIX
+done

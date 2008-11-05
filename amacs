@@ -1,0 +1,41 @@
+#!/usr/bin/perl
+
+$pid = 0;
+open I, "ps -axww -U $ENV{'USER'} |";
+while (<I>)
+{
+   if (/Aquamacs Emacs/ && !/grep/)
+	{
+	    if (/^\s*([0-9]+)\s/)
+		{
+		    $pid = $1;
+		    }
+	}
+}
+ 
+close I;
+$args = "";
+for my $f (@ARGV)
+{
+    if (! -e $f)
+{
+   system("touch \"$f\"");
+}
+$args .= "\"$f\" ";
+}
+
+# there is still an issue:
+# if the sudo emacs is still open, it will 
+# call 'open' and open the files in the wrong
+# emacs process.
+
+if ($pid)
+ {
+   system("open -a /Applications/Aquamacs\\ Emacs.app $args");
+ } 
+else
+ {
+   system("/Applications/Aquamacs\\ Emacs.app/Contents/MacOS/Aquamacs\\ Emacs $args &");
+ }
+
+exit;

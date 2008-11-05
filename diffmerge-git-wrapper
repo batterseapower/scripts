@@ -1,0 +1,31 @@
+#!/bin/sh
+
+# Author: Olek Poplavsky
+# Script name: diffmerge-git-wrapper
+# This script works as interface bridge between git and DiffMerge and allows to get nice visual
+# diffs from git; right now script requires empty file diffmerge-git-wrapper-empty-file in the same
+# directory as script
+# easiest way to integrate it with git is by setting environment variable "export GIT_EXTERNAL_DIFF='diffmerge-git-wrapper'"
+
+left_path=$2
+right_path=$5
+
+
+basedir=`dirname $0`
+
+# working around bug in diffmerge, it does not like /dev/null yet as of 3.1.0
+if [[ "$left_path" = "/dev/null" ]]
+then
+  left_path="$basedir/diffmerge-git-wrapper-empty-file"
+fi
+
+if [[ "$right_path" = "/dev/null" ]]
+then
+  right_path="$basedir/diffmerge-git-wrapper-empty-file"
+fi
+
+left_title="$1 $3"
+right_title="$1 $6"
+
+# Note: I've swapped left and right!!
+/Applications/DiffMerge.app/Contents/MacOS/DiffMerge $left_path $right_path --title1="$left_title" --title2="$right_title"
