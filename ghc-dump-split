@@ -21,12 +21,13 @@ for filename in sys.argv[1:]:
     file.close()
     
     index = 1
+    seen_segments = {}
     pending_segment = None
     for segment in itertools.dropwhile(lambda segment: segment.strip() == '', seperator_regex.split(contents)):
         segment_stripped = segment.strip()
         
         if pending_segment:
-            output_filename = filename + '.' + filename_sanitize(pending_segment) # '.' + str(index).zfill(2) + 
+            output_filename = filename + '.' + filename_sanitize(pending_segment)
             output_file = open(output_filename, 'w')
             output_file.write(segment_stripped)
             output_file.close()
@@ -34,7 +35,12 @@ for filename in sys.argv[1:]:
             pending_segment = None
             index = index + 1
         else:
-            pending_segment = segment_stripped
+            # Work out an index number for the segment, so that duplicate segment
+            # names do not get written to identical files
+            index = seen_segments.get(segment_stripped, 0)
+            seen_segments[segment_stripped] = index + 1
+            
+            pending_segment = segment_stripped + " - " + str(index)
             
             if len(pending_segment) > 100 or len(pending_segment) == 0:
                 raise Exception("Pending segment fails sanity check:\n" + pending_segment)
