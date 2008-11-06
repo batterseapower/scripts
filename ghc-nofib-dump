@@ -46,8 +46,16 @@ def usage(program):
     print "Usage:", sys.argv[0], "[--split] core/benchmark [variant-base-name] variant-code"
 
 def main(program, arguments):
-    options, args = getopt.getopt(arguments, "", ["split"])
-    do_split = len(options) > 0
+    options, args = getopt.getopt(arguments, "", ["split", "stage="])
+    do_split = False
+    stage = 2
+    for key, arg in options:
+        if key == "--split":
+            do_split = True
+        elif key == "--stage":
+            stage = int(arg)
+        else:
+            raise Exception("Unrecognised option: " + key)
         
     if len(args) == 2:
         mode = args[0]
@@ -61,8 +69,7 @@ def main(program, arguments):
         usage(program)
         return 2
 
-    stage = 2
-    ghc_opts = '-O -fforce-recomp -c -dverbose-core2core -ddump-stg ' + os.environ.get("EXTRA_HC_OPTS", '')
+    ghc_opts = '-O ' + os.environ.get("EXTRA_HC_OPTS", '')
 
     current_directory = os.getcwd()
     full_directory_path = path_as_list(current_directory)
@@ -77,10 +84,13 @@ def main(program, arguments):
         variant_base_name = inferred_variant_base_name
 
     variant = variant_base_name + '-' + variant_code
-    print "Variant:", variant, "Stage:", stage, "Options:", ghc_opts
+    print "Variant:", variant, "Stage:", stage
     
     if mode == 'core':
         nofib_relative = os.path.join(*takesuffixwhile(lambda x: x != 'nofib', full_directory_path))
+        
+        ghc_opts += " -fforce-recomp -c -dverbose-core2core -ddump-stg"
+        print "Options:", ghc_opts
         
         output_root = os.path.join(investigation_root, 'results', 'code', variant, nofib_relative)
         print "Output to", output_root
@@ -102,6 +112,8 @@ def main(program, arguments):
                 print "Splitting"
                 os.system('ghc-dump-split ' + output_path)
     elif mode == 'benchmark':
+        print "Options:", ghc_opts
+        
         output_path = os.path.join(investigation_root, 'results', variant + '.log')
         print "Output to", output_path
         
