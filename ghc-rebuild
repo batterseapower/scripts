@@ -1,14 +1,8 @@
 #!/bin/sh
 #
 
-if [ -z "$STAGE" ]; then
-  STAGE=2
-  echo "Defaulting to STAGE=$STAGE"
-  sleep 1
-fi
-
 # These -could- fail if the Makefile isn't ready yet
 make clean && make distclean
 
-sh boot && ./configure && make -j12 stage="$STAGE"
+sh boot && ./configure && make -j12
 
