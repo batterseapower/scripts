@@ -1,0 +1,19 @@
+#!/bin/bash
+#
+
+if [ "$#" -eq "2" ]; then
+    WHERE=$1
+    NEW=$(cd $2; pwd)
+    SEDCOMMAND="s,http://darcs.haskell.org/packages,$NEW/libraries,g; s,http://darcs.haskell.org/hsc2hs,$NEW/utils/hsc2hs,g; s,http://darcs.haskell.org/haddock2,$NEW/utils/haddock,g; s,http://darcs.haskell.org/ghc,$NEW,g; s,http://darcs.haskell.org,$NEW,g"
+elif [ "$#" -eq "3" ]; then
+    WHERE=$1
+    OLD=$(cd $2; pwd)
+    NEW=$(cd $3; pwd)
+    SEDCOMMAND="s,$OLD,$NEW,g"
+else
+    echo "Usage: $0 directory [old-source] new-source"
+    exit 1
+fi
+
+find $WHERE \( -name repos -o -name defaultrepo \) -print0 | xargs -0 sed -i -e "$SEDCOMMAND"
+exit $?
