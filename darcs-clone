@@ -1,0 +1,33 @@
+#!/bin/bash
+#
+
+if [ "$#" -ne "2" ]; then
+    echo "Usage: $0 source-repo target-repo"
+    exit 1
+fi
+
+SOURCE=$1
+TARGET=$2
+
+#SOURCE=ghc.head
+#TARGET=ghc.working
+
+SOURCEPATH=$(cd $SOURCE; pwd)
+TARGETPATH="$(pwd)/$TARGET"
+
+if [ -d $TARGETPATH ]; then
+        echo "$TARGET already exists"
+        exit 1;
+fi
+
+# Do the "clone"
+cp -r $SOURCEPATH $TARGETPATH
+
+# Fix all the repos to point to ghc.head as the thing to pull from
+find $TARGETPATH \( -name repos -o -name defaultrepo \) -print0 | xargs -0 sed -i -e "s,http://darcs.haskell.org/packages,$SOURCEPATH/libraries,g; s,http://darcs.haskell.org/hsc2hs,$SOURCEPATH/utils/hsc2hs,g; s,http://darcs.haskell.org/haddock2,$SOURCEPATH/utils/haddock,g; s,http://darcs.haskell.org/ghc,$SOURCEPATH,g; s,http://darcs.haskell.org,$SOURCEPATH,g"
+
+# Old version (BAD):
+#find ghc.working \( -name pristine -prune -o -type f -print0 | xargs -0 sed -i 's/Application/whatever/g'
+
+# If I screwed up and set the repo pointers wrongly:
+#find ghc.working \( -name repos -o -name defaultrepo \) -print0 | xargs -0 sed -i -e "s,Users/mbolingbroke/Programming/Checkouts/ghc.working,Users/mbolingbroke/Programming/Checkouts/ghc.head,g"
