@@ -17,3 +17,18 @@ fi
 
 find $WHERE \( -name repos -o -name defaultrepo \) -print0 | xargs -0 sed -i -e "$SEDCOMMAND"
 exit $?
+
+# Alternative version:
+#
+# if [ "$#" -eq "0" ]; then
+#     echo "Listing current defaultrepo/repos:"
+#     find . -path '*/_darcs/prefs/defaultrepo' -o -path '*/_darcs/prefs/repos' | xargs cat
+# elif [ "$#" -eq "2" ]; then
+#     for file in $(find . -path '*/_darcs/prefs/defaultrepo' -o -path '*/_darcs/prefs/repos'); do
+#         echo "Rewriting $file from $1 to $2"
+#         sed 's/$1/$2/' $file
+#     done
+# else
+#     echo "Usage: $0 old-prefix new-prefix"
+#     exit 1
+# fi
