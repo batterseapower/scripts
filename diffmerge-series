@@ -10,14 +10,14 @@ mkdir $TEMP_DIR
 mkdir $LEFT_DIR
 mkdir $RIGHT_DIR
 
-cd $HERE
+cd "$HERE"
 eval "LEFT_FILES=$1*"
 for LEFT_FILE in $LEFT_FILES; do
     LEFT_FILE_BASE=`echo $LEFT_FILE | sed s,$1,,`
     cp $LEFT_FILE $LEFT_DIR/$LEFT_FILE_BASE
 done
 
-cd $HERE
+cd "$HERE"
 eval "RIGHT_FILES=$2*"
 for RIGHT_FILE in $RIGHT_FILES; do
     RIGHT_FILE_BASE=`echo $RIGHT_FILE | sed s,$2,,`
