@@ -20,30 +20,23 @@ def path_as_list(path):
     path_list = [head] + path_list
     return path_list
 
-def reversed_list(what):
-    the_list = list(what)
-    the_list.reverse()
-    return the_list
-
-def dropwhile(predicate, iterable):
-    dropping = True
+def breakwhere(predicate, iterable):
+    left, right = [], []
+    in_left = True
     for x in iterable:
-        if dropping and predicate(x):
-            continue
+        print x
+        if in_left and predicate(x):
+            in_left = False
+        
+        if in_left:
+            left.append(x)
         else:
-            dropping = False
-            yield x
-
-def dropsuffixwhile(predicate, iterable):
-    return reversed_list(dropwhile(predicate, reversed_list(iterable)))
-
-def takesuffixwhile(predicate, iterable):
-    return reversed_list(takewhile(predicate, reversed_list(iterable)))
-
+            right.append(x)
+    return (left, right)
 
 
 def usage(program):
-    print "Usage:", sys.argv[0], "[--split] core/benchmark [variant-base-name] variant-code"
+    print "Usage:", program, "[--split] core/benchmark [variant-base-name] variant-code"
 
 def main(program, arguments):
     options, args = getopt.getopt(arguments, "", ["split", "stage="])
@@ -73,7 +66,19 @@ def main(program, arguments):
 
     current_directory = os.getcwd()
     full_directory_path = path_as_list(current_directory)
-    ghc_root = os.path.join(*dropsuffixwhile(lambda x: x != 'nofib', full_directory_path)[0:-1])
+    (ghc_root_from_nofib, nofib_relative) = breakwhere(lambda x: x == 'nofib', full_directory_path)
+    (ghc_root_from_libraries, libraries_relative) = breakwhere(lambda x: x == 'libraries', full_directory_path)
+    
+    if ghc_root_from_nofib != full_directory_path:
+        is_nofib = True
+        ghc_root = os.path.join(*ghc_root_from_nofib)
+        output_relative = os.path.join(*nofib_relative[1:]) # Drop the 'nofib' prefix here..
+    elif ghc_root_from_libraries != full_directory_path:
+        is_nofib = False
+        ghc_root = os.path.join(*ghc_root_from_libraries)
+        output_relative = os.path.join(*libraries_relative) # ..but don't drop the 'libraries' prefix here
+    else:
+        raise Exception("Could not find GHC root!")
 
     ghc = os.path.join(ghc_root, 'ghc', 'stage' + str(stage) + '-inplace', 'ghc')
     investigation_root, inferred_variant_base_name = os.path.split(ghc_root)
@@ -87,12 +92,10 @@ def main(program, arguments):
     print "Variant:", variant, "Stage:", stage
     
     if mode == 'core':
-        nofib_relative = os.path.join(*takesuffixwhile(lambda x: x != 'nofib', full_directory_path))
-        
-        ghc_opts += " -fforce-recomp -c -dverbose-core2core -ddump-stg"
+        ghc_opts += " -fforce-recomp -fno-code -c -dverbose-core2core -ddump-stg"
         print "Options:", ghc_opts
         
-        output_root = os.path.join(investigation_root, 'results', 'code', variant, nofib_relative)
+        output_root = os.path.join(investigation_root, 'results', 'code', variant, output_relative)
         print "Output to", output_root
 
         if not os.path.exists(output_root):
@@ -104,7 +107,7 @@ def main(program, arguments):
     
             output_path = os.path.join(output_root, source_file)
             output_file = open(output_path, 'w')
-            lines = os.popen(ghc + ' ' + ghc_opts + ' ' + source_path, 'r').readlines()
+            lines = os.popen(ghc + ' ' + ghc_opts + ' ' + source_path + ' 2>&1', 'r').readlines()
             output_file.writelines(lines)
             output_file.close()
         
@@ -112,6 +115,9 @@ def main(program, arguments):
                 print "Splitting"
                 os.system('ghc-dump-split ' + output_path)
     elif mode == 'benchmark':
+        if not is_nofib or output_relative:
+            raise Exception("Can only benchmark if we are in the nofib root directory!")
+        
         print "Options:", ghc_opts
         
         output_path = os.path.join(investigation_root, 'results', variant + '.log')
