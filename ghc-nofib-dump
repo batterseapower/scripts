@@ -71,7 +71,7 @@ def main(program, arguments):
     if ghc_root_from_nofib != full_directory_path:
         is_nofib = True
         ghc_root = os.path.join(*ghc_root_from_nofib)
-        output_relative = os.path.join(*nofib_relative[1:]) # Drop the 'nofib' prefix here..
+        output_relative = len(nofib_relative) > 1 and os.path.join(*nofib_relative[1:]) or "" # Drop the 'nofib' prefix here..
     elif ghc_root_from_libraries != full_directory_path:
         is_nofib = False
         ghc_root = os.path.join(*ghc_root_from_libraries)
