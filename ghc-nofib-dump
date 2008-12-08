@@ -24,7 +24,6 @@ def breakwhere(predicate, iterable):
     left, right = [], []
     in_left = True
     for x in iterable:
-        print x
         if in_left and predicate(x):
             in_left = False
         
