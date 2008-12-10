@@ -1,92 +1,47 @@
 #!/bin/bash
 #
 
-### OPTIONS ###
-
-# Must be run in nofib directory...
-NOFIB_DIR=`echo ~/Programming/Checkouts/ghc.working/nofib`
-ANALYSE_DIR=~/Programming/Checkouts/ghc.working/utils/nofib-analyse
-ANALYSE_PATH=$ANALYSE_DIR/nofib-analyse
-EDITOR=`which mate`
-
-# NOTE: Should --clean if switches change
-SWITCHES_BEFORE='-O2 -fold-static-argument-transformation'
-SWITCHES_AFTER='-O2 -fno-old-static-argument-transformation'
-
-# Sanity testing:
-#SWITCHES_AFTER=$SWITCHES_BEFORE
-
-### SCRIPT ###
-
-# Handle command line arguments
-
-if [ $# -lt 1 ]
-then
-    echo "Usage: $0 run-name [--clean|--clean-after]"
+if [ ! -d "results" ]; then
+    echo "Please run this in the root directory!"
     exit 1
 fi
 
-# Defaults
-CLEAN_BEFORE=0
-CLEAN_AFTER=0
+if [ $# -lt 5 -o $# -gt 6 ]; then
+    echo "Usage: $0 [--skip-diff] ghc-relative-path left-variant left-suffix right-variant right-suffix"
+    exit 1
+fi
 
-if [ $# -gt 1 ]
-then
-    if [ $2 == "--clean" ]
-    then
-        CLEAN_BEFORE=1
-        CLEAN_AFTER=1
+if [ $# -eq 6 ]; then
+    if [ $1 = "--skip-diff" ]; then
+        echo "OK skipping the diff step as requested.."
+        DIFF_COMMAND="echo diffmerge-series"
+    else
+        echo "Unknown flag: $1"
+        exit 1
     fi
-
-    if [ $2 == "--clean-after" ]
-    then
-        CLEAN_AFTER=1
-    fi
+    shift
+else
+    DIFF_COMMAND=diffmerge-series
 fi
 
-# Find test and run name
+TEST_PATH=$1
+LEFT_VARIANT=$2
+LEFT_SUFFIX=$3
+RIGHT_VARIANT=$4
+RIGHT_SUFFIX=$5
 
-RUN=$1
-TEST=$(pwd | sed s,$NOFIB_DIR/*,, | sed s,/,-,g | sed 's, ,,g')
+echo "Building left hand side.."
+pushd "$LEFT_VARIANT/$TEST_PATH" || (echo "Could not find left test directory" && exit 2)
+ghc-nofib-dump --split core $LEFT_SUFFIX
+popd
 
-if ! [ -n "$TEST" ]
-then
-    TEST=nofib
-fi
+echo "Building right hand side.."
+pushd "$RIGHT_VARIANT/$TEST_PATH" || (echo "Could not find right test directory" && exit 2)
+ghc-nofib-dump --split core $RIGHT_SUFFIX
+popd
 
-echo Run: $RUN
-echo Test: $TEST
+# Need to strip nofib/ from the test path if it exists..
+STORED_AT_TEST_PATH=${TEST_PATH#nofib/}
 
-# Find files
-BEFORE_FILE=$ANALYSE_DIR/$TEST-before
-AFTER_FILE=$ANALYSE_DIR/$TEST-after-$RUN
-DIFF_FILE=$ANALYSE_DIR/$TEST-compare-$RUN
-
-# Clean files
-
-if [ $CLEAN_AFTER -eq 1 ]
-then
-    rm -f $AFTER_FILE
-fi
-
-if [ $CLEAN_BEFORE -eq 1 ]
-then
-    rm -f $BEFORE_FILE
-fi
-
-# Generate files
-
-if ! [ -f $BEFORE_FILE ]
-then
-        make clean >& /dev/null
-        make -k EXTRA_HC_OPTS="$SWITCHES_BEFORE" >& $BEFORE_FILE
-fi
-
-if ! [ -f $AFTER_FILE ]
-then
-        make clean >& /dev/null
-        make -k EXTRA_HC_OPTS="$SWITCHES_AFTER" >& $AFTER_FILE
-fi
-
-$ANALYSE_PATH $BEFORE_FILE $AFTER_FILE > $DIFF_FILE
-$EDITOR -w $DIFF_FILE
+echo "Showing results.."
+$DIFF_COMMAND "results/code/$LEFT_VARIANT-$LEFT_SUFFIX/$STORED_AT_TEST_PATH/" "results/code/$RIGHT_VARIANT-$RIGHT_SUFFIX/$STORED_AT_TEST_PATH/"

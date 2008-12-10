@@ -1,0 +1,92 @@
+#!/bin/bash
+#
+
+### OPTIONS ###
+
+# Must be run in nofib directory...
+NOFIB_DIR=`echo ~/Programming/Checkouts/ghc.working/nofib`
+ANALYSE_DIR=~/Programming/Checkouts/ghc.working/utils/nofib-analyse
+ANALYSE_PATH=$ANALYSE_DIR/nofib-analyse
+EDITOR=`which mate`
+
+# NOTE: Should --clean if switches change
+SWITCHES_BEFORE='-O2 -fold-static-argument-transformation'
+SWITCHES_AFTER='-O2 -fno-old-static-argument-transformation'
+
+# Sanity testing:
+#SWITCHES_AFTER=$SWITCHES_BEFORE
+
+### SCRIPT ###
+
+# Handle command line arguments
+
+if [ $# -lt 1 ]
+then
+    echo "Usage: $0 run-name [--clean|--clean-after]"
+    exit 1
+fi
+
+# Defaults
+CLEAN_BEFORE=0
+CLEAN_AFTER=0
+
+if [ $# -gt 1 ]
+then
+    if [ $2 == "--clean" ]
+    then
+        CLEAN_BEFORE=1
+        CLEAN_AFTER=1
+    fi
+
+    if [ $2 == "--clean-after" ]
+    then
+        CLEAN_AFTER=1
+    fi
+fi
+
+# Find test and run name
+
+RUN=$1
+TEST=$(pwd | sed s,$NOFIB_DIR/*,, | sed s,/,-,g | sed 's, ,,g')
+
+if ! [ -n "$TEST" ]
+then
+    TEST=nofib
+fi
+
+echo Run: $RUN
+echo Test: $TEST
+
+# Find files
+BEFORE_FILE=$ANALYSE_DIR/$TEST-before
+AFTER_FILE=$ANALYSE_DIR/$TEST-after-$RUN
+DIFF_FILE=$ANALYSE_DIR/$TEST-compare-$RUN
+
+# Clean files
+
+if [ $CLEAN_AFTER -eq 1 ]
+then
+    rm -f $AFTER_FILE
+fi
+
+if [ $CLEAN_BEFORE -eq 1 ]
+then
+    rm -f $BEFORE_FILE
+fi
+
+# Generate files
+
+if ! [ -f $BEFORE_FILE ]
+then
+        make clean >& /dev/null
+        make -k EXTRA_HC_OPTS="$SWITCHES_BEFORE" >& $BEFORE_FILE
+fi
+
+if ! [ -f $AFTER_FILE ]
+then
+        make clean >& /dev/null
+        make -k EXTRA_HC_OPTS="$SWITCHES_AFTER" >& $AFTER_FILE
+fi
+
+$ANALYSE_PATH $BEFORE_FILE $AFTER_FILE > $DIFF_FILE
+$EDITOR -w $DIFF_FILE
