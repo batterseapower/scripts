@@ -1,0 +1,4 @@
+#!/bin/bash
+#
+
+/Applications/Skim.app/Contents/MacOS/Skim $* &
