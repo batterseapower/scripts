@@ -1,0 +1,21 @@
+#!/usr/bin/env ruby
+#
+require 'rubygems'
+require 'safariwatir'
+
+raven_user_id="mb566"
+raw_raven_password = `security find-generic-password -ga #{raven_user_id} 2>&1 | grep password | sed 's/password: //'`
+raven_password=raw_raven_password.strip[1...-1]
+
+# Initiate login
+browser = Watir::Safari.new
+browser.goto("http://www.google.co.uk")
+browser.button(:name, "Raven").click
+
+# Enter username and password
+browser.text_field(:name, "userid").set(raven_user_id)
+browser.text_field(:name, "pwd").set(raven_password)
+browser.button(:name, "submit").click
+
+# Finish off authentication
+browser.button(:value, "here").click
