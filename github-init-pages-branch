@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+
+echo "WARNING: this operation will lose any uncommitted changes! Kill me in the next 10 seconds if you don't want to do this"
+sleep 10
+
+git symbolic-ref HEAD refs/heads/gh-pages
+rm .git/index
+git clean -fdx
