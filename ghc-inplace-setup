@@ -1,0 +1,3 @@
+#!/bin/bash
+
+ln ../../utils/ghc-pkg/install-inplace/bin/ghc-pkg .
