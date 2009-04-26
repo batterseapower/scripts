@@ -1,4 +1,4 @@
 #!/bin/bash
 #
 
-/Applications/Skim.app/Contents/MacOS/Skim $* &
+/Applications/Skim.app/Contents/MacOS/Skim $* >& /dev/null &
