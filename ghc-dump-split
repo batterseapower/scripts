@@ -15,6 +15,9 @@ def filename_sanitize(filename):
         filename = filename.replace(from_str, to_str)
     return filename
 
+def drop(iterator, n):
+    return itertools.islice(iterator, n, None)
+
 for filename in sys.argv[1:]:
     file = open(filename, 'r')
     contents = file.read()
@@ -23,7 +26,7 @@ for filename in sys.argv[1:]:
     index = 1
     seen_segments = {}
     pending_segment = None
-    for segment in itertools.dropwhile(lambda segment: segment.strip() == '', seperator_regex.split(contents)):
+    for segment in drop(seperator_regex.split(contents), 1):
         segment_stripped = segment.strip()
         
         if pending_segment:
