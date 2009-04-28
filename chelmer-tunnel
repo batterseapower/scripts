@@ -1,0 +1,4 @@
+#!/bin/bash
+#
+
+ssh -f mb566@chelmer.cl.cam.ac.uk -L 2222:mb566.robinson.private.cam.ac.uk:22 -N
