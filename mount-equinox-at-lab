@@ -1,0 +1,4 @@
+#!/bin/bash
+
+mkdir /Volumes/Equinox
+sshfs mb566.robinson.private.cam.ac.uk.:/Users/mbolingbroke /Volumes/Equinox -oauto_cache,reconnect,volname=Equinox

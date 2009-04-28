@@ -1,0 +1,4 @@
+#!/bin/bash
+
+mkdir /Volumes/Equinox
+sshfs -p 2222 localhost:/Users/mbolingbroke /Volumes/Equinox -oauto_cache,reconnect,volname=Equinox
