@@ -1,0 +1,5 @@
+#!/bin/sh
+#
+
+git config --add branch.master.remote origin
+git config --add branch.master.merge refs/heads/master
