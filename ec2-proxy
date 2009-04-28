@@ -1,0 +1,135 @@
+#!/usr/bin/env ruby
+
+# =========
+# EC2 Proxy
+# =========
+#
+# Getting Started
+# ===============
+#
+# To set this up:
+#
+# 1. Run:
+#  ec2-authorize default -p 22
+#  ec2-authorize default -p 3128
+#
+# 2. Install:
+#  sudo gem install amazon-ec2 net-ssh
+#
+# 3. Change the constants immediately below as appropriate for your setup:
+#
+#
+# Credits
+# =======
+#
+# Based on manual procedure at http://www.softwarevoices.com/archives/54-ssh-tunnel-to-Amazon-EC2-as-a-temporary-web-proxy-for-privacy-and-security.html
+# EC2 gem usage based on http://fushizen.net/~bd/ec2-backup-scrubbed.rb.txt
+
+# Useful configuration
+KEYPAIR = "ec2-key"
+IMAGE_ID = "ami-5647a33f" # ec2-public-images/fedora-8-i386-base-v1.08.manifest.xml
+KEYS = [File.expand_path("~/.ec2/id_rsa-" + KEYPAIR)]
+
+
+require 'EC2'
+require 'net/ssh'
+
+def wait_forever()
+  while true
+    sleep 5
+  end
+end
+
+def fancy_sleep(seconds)
+  (1..seconds).each { |i| 
+    sleep 1
+    print "."
+    $stdout.flush
+  }
+end
+
+
+# Connect to EC2
+puts("[*] Connecting to EC2")
+access_key_id = ENV['AMAZON_ACCESS_KEY_ID']
+secret_access_key = ENV['AMAZON_SECRET_ACCESS_KEY']
+ec2 = EC2::Base.new(:access_key_id => access_key_id, :secret_access_key => secret_access_key)
+
+# Start the instance
+puts("[*] Starting instance of image #{IMAGE_ID}")
+response = ec2.run_instances(:image_id => IMAGE_ID, :min_count => 1, :max_count => 1, :key_name => KEYPAIR)
+instance_id = response.instancesSet.item[0].instanceId
+
+# Make sure that we kill the instance when the script gets killed
+at_exit {
+  puts("[*] Terminating instance #{instance_id}")
+  (1..5).each { |i| 
+    ec2.terminate_instances(:instance_id => [instance_id])
+    sleep 1
+  }
+}
+
+# Wait for the instance to come up
+puts("[*] Waiting for instance")
+instance_state = nil
+while true
+    fancy_sleep(5)
+    response = ec2.describe_instances(:instance_id => [instance_id])
+    instance_state = response.reservationSet.item[0].instancesSet.item[0].instanceState.name
+    puts " #{instance_id} is #{instance_state}"
+    break unless instance_state == "pending"
+end
+
+# Check that the instance hasn't failed during startup
+if instance_state != "running"
+    puts "[*] Unexpected state: #{instance_state}, terminating and aborting"
+    exit 1
+end
+
+# Retrieve DNS name and wait for SSH to start up
+instance_dns_name = response.reservationSet.item[0].instancesSet.item[0].dnsName
+puts "[*] Instance up at #{instance_dns_name}, waiting for SSH"
+fancy_sleep(30)
+puts " attempting to connect"
+
+# Dial-in to the newly built instance using the private key
+puts "[*] Connecting via SSH with keys #{KEYS.join(" ")}"
+Net::SSH.start(instance_dns_name, 'root', :keys => KEYS) do |ssh|
+  # A helper to execute a command showing it's output on stdout/stderr
+  # NB: due to weird-ass Ruby scoping rules I can't use ssh from the enclosing context
+  def exec_directly!(ssh, command)
+    channel = ssh.open_channel do |ch|
+      ch.exec(command) do |ch, success|
+        raise "Could not execute command '#{command}'" unless success
+        puts("#{command}:")
+        
+        ch.on_data do |c, data|
+          $stdout.print data
+        end
+        
+        ch.on_extended_data do |c, type, data|
+          $stderr.print data
+        end
+      end
+    end
+    
+    channel.wait
+  end
+  
+  puts(" [*] Installing prerequisites")
+  exec_directly!(ssh, "yum install -y squid")
+  
+  # Start the proxy in the background
+  puts(" [*] Starting proxy")
+  exec_directly!(ssh, "service squid start")
+  
+  # Forward the port
+  puts(" [*] Forwarding port - terminate the script when you are down browsing")
+  ssh.forward.local(3128, "localhost", 3128)
+  #ssh.loop { true }
+  
+  # Show the log file
+  exec_directly!(ssh, "tail -f /var/log/squid/access.log")
+end
+
+wait_forever()
