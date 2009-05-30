@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+
+if [ -z "$1" ]; then
+    echo "Usage: `basename $0` FILES"
+    exit 1
+fi
+
+until [ -z "$1" ]; do
+    echo $1
+    mpg321 -q $1 -w /tmp/$!.wav && oggenc -Q /tmp/$!.wav -o `basename $1 .mp3`.ogg
+    rm /tmp/$!.wav
+    shift
+done
