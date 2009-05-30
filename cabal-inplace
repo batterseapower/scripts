@@ -2,13 +2,14 @@
 #
 
 if [ $# -lt 1 ] ; then
-    echo "Usage: $0 ../ghc/stage2-inplace [package-name]"
+    echo "Usage: $0 ../ghc/stage2-inplace"
     exit 1
 fi
 
-INPLACE_DIR=`pwd`/$1
-PACKAGE=$2
+INPLACE_DIR=$(cd $1; pwd)
+shift; CABAL_ARGS=$*
 
 # Want to produce commands like the following:
 # cabal install --with-compiler=/Users/mbolingbroke/Programming/Checkouts/ghc.transfer2/ghc/stage2-inplace/ghc ghc-syb --package-db=/Users/mbolingbroke/Programming/Checkouts/ghc.transfer2/inplace-datadir/./package.conf
-cabal install --with-compiler=$INPLACE_DIR/ghc --package-db=$INPLACE_DIR/../../inplace-datadir/package.conf $PACKAGE
+echo "cabal $CABAL_ARGS --with-compiler=$INPLACE_DIR/ghc --package-db=$INPLACE_DIR/../../inplace-datadir/package.conf"
+cabal $CABAL_ARGS --with-compiler=$INPLACE_DIR/ghc --package-db=$INPLACE_DIR/../../inplace-datadir/package.conf
