@@ -1,0 +1,49 @@
+#!/usr/bin/env python
+#
+
+import os
+import codecs
+import shutil
+
+dsl_file = "out.dsl"
+dsl_lines = codecs.open(dsl_file, encoding="utf-16").read().split('\r\n')
+
+mp3_directory = "MP3/"
+
+for i in range(3, len(dsl_lines) - 1, 9):
+    record = dsl_lines[i:i+9]
+    
+    character = record[0]
+    pinyin = record[4]
+    
+    filename_line = record[1]
+    filename_start = filename_line.index("[s]") + 3
+    filename_end = filename_line.index("[/s]", filename_start)
+    filename = filename_line[filename_start:filename_end]
+    
+    # In output of converter, .wav is written while the files are actually still mp3
+    mp3_filename = filename.rstrip(".wav") + ".mp3"
+    
+    source_mp3_path = mp3_directory + mp3_filename
+    if os.path.exists(source_mp3_path):
+        def lazy_pinyin_strategy():
+            target_mp3_path = mp3_directory + character + ".mp3"
+            if os.path.exists(target_mp3_path):
+                print "Giving", mp3_filename, "a name including pinyin", "(" + pinyin +")", "because we already have a file called", character
+                shutil.move(source_mp3_path, mp3_directory + character + " (" + pinyin +").mp3")
+            else:
+                shutil.move(source_mp3_path, target_mp3_path)
+        
+        def always_pinyin_strategy():
+            target_mp3_path = mp3_directory + character + " (" + pinyin +").mp3"
+            if os.path.exists(target_mp3_path):
+                print "Skipping file ", mp3_filename, '(' + character + ", " + pinyin + ')', "because we already have such a target file"
+            else:
+                shutil.move(source_mp3_path, target_mp3_path)
+        
+        #print character, filename
+        #lazy_pinyin_strategy()
+        always_pinyin_strategy()
+    else:
+        # print "Skipping", character, "because MP3 is missing"
+        None
