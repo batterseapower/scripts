@@ -1,0 +1,26 @@
+#!/bin/bash
+
+if [ $# -ne 2 ]; then
+    echo "Usage: `basename $0` package version [configure-arg ...]"
+fi
+
+package=$1; shift
+version=$1; shift
+
+cd ~/Downloads
+
+if [ ! -d "$package-$version" ]; then
+    wget http://hackage.haskell.org/packages/archive/$package/$version/$package-$version.tar.gz
+    tar -xzf $package-$version.tar.gz
+fi
+
+cd $package-$version
+
+if [ -f Setup.lhs ]; then
+  setup="Setup.lhs"
+else
+  setup="Setup.hs"
+fi
+
+runghc $setup configure $* && runghc $setup build && sudo runghc $setup install
+exit $?
