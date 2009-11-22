@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# INTERNAL script for use by find-copy-to-dir
+
+NAME=$1
+DESTINATION=$2
+
+DESTINATION_NAME=`echo $NAME | sed s,\\\./,,g | sed s,/,-,g`
+
+echo "Copying $NAME to $DESTINATION_NAME"
+cp $NAME $DESTINATION/$DESTINATION_NAME

@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 pattern destination"
+    exit 1
+fi
+
+PATTERN=$1
+DESTINATION=$2
+
+# Pruning stuff prevents us from looking at the same directory twice
+find . -path ./$DESTINATION -prune -o -iname $PATTERN -exec find-copy-to-dir-one {} $DESTINATION \;
