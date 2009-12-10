@@ -1,0 +1,7 @@
+#!/usr/bin/env runhaskell
+
+import Data.List
+import Data.Ord
+import System.IO
+
+main = interact (unlines . map (\(x:xs) -> x ++ ": " ++ show (1 + length xs)) . reverse . sortBy (comparing length) . group . sort . words)

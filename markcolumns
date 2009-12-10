@@ -1,0 +1,19 @@
+#!/usr/bin/env runhaskell
+
+import System.Environment
+import System.IO
+import Data.Char
+import Data.List
+
+main = do
+    ls <- fmap lines $ hGetContents stdin
+    length ls `seq` return ()
+    
+    let go :: String -> (Int, [String]) -> (Int, [String])
+        go line (col, result)
+           | null spaces = (col, line : result)
+           | otherwise   = (col', (replicate col' '#' ++ drop col' spaces ++ rest) : result)
+          where (spaces, rest) = span isSpace line
+                col' = col `min` length spaces
+    
+    putStr $ unlines $ snd $ foldr go (maxBound, []) ls

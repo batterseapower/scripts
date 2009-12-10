@@ -1,0 +1,20 @@
+#!/usr/bin/env runhaskell
+
+import System.Environment
+import System.IO
+import Data.Char
+import Data.List
+
+main = do
+    ls <- fmap lines $ hGetContents stdin
+    length ls `seq` return ()
+    
+    let go :: String -> (Int, [String]) -> (Int, [String])
+        go line (col, result)
+           | thiscol == 0 ||
+             "->" `isPrefixOf` (drop thiscol line) = (col, result)
+           | thiscol < col                         = (thiscol, line : result)
+           | otherwise                             = (col, result)
+          where thiscol = length (takeWhile isSpace line)
+    
+    putStr $ unlines $ snd $ foldr go (maxBound, []) ls
