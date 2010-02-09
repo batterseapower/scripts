@@ -1,11 +1,20 @@
 #!/bin/bash
 
-if [ $# -ne 2 ]; then
-    echo "Usage: `basename $0` package version [configure-arg ...]"
+if [ $# -lt 1 ]; then
+    echo "Usage: `basename $0` package [version] [configure-arg ...]"
 fi
 
 package=$1; shift
-version=$1; shift
+
+if [ $# -lt 1 ]; then
+  # Abuse Hackage index page to discover most recent version. Remember:
+  #  -e /pattern/!d   == delete lines not matching this pattern
+  #  -e 's,foo,bar,g' == substitute foo for bar globally. \1 is the first capture from foo
+  #  -e '/latest/d'   == delete lines matching latest
+  version=$(wget http://hackage.haskell.org/packages/archive/$package/ -O - | sed -e '/folder.gif" alt="\[DIR\]"/!d' -e 's,.*alt="\[DIR\]"></td><td><a href="\([^/]*\)/".*,\1,g' -e '/latest/d' | tail -1)
+else
+  version=$1; shift
+fi
 
 cd ~/Downloads
 
