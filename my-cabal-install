@@ -1,35 +1,76 @@
-#!/bin/bash
+#!/usr/bin/env python
 
-if [ $# -lt 1 ]; then
-    echo "Usage: `basename $0` package [version] [configure-arg ...]"
-fi
+import os.path
+import subprocess
+import sys
+import re
 
-package=$1; shift
 
-if [ $# -lt 1 ]; then
-  # Abuse Hackage index page to discover most recent version. Remember:
-  #  -e /pattern/!d   == delete lines not matching this pattern
-  #  -e 's,foo,bar,g' == substitute foo for bar globally. \1 is the first capture from foo
-  #  -e '/latest/d'   == delete lines matching latest
-  version=$(wget http://hackage.haskell.org/packages/archive/$package/ -O - | sed -e '/folder.gif" alt="\[DIR\]"/!d' -e 's,.*alt="\[DIR\]"></td><td><a href="\([^/]*\)/".*,\1,g' -e '/latest/d' | sort | tail -1)
-else
-  version=$1; shift
-fi
+if len(sys.argv) <= 1:
+    print "Usage: `basename %s` [--clean] package[-version] ... [-- configure-arg ...]" % sys.argv[0]
+    sys.exit(1)
 
-cd ~/Downloads
+args = sys.argv[1:]
+args, clean = (args[0] == "--clean") and (args[1:], True) or (args, False)
 
-if [ ! -d "$package-$version" ]; then
-    wget http://hackage.haskell.org/packages/archive/$package/$version/$package-$version.tar.gz
-    tar -xzf $package-$version.tar.gz
-fi
+packageargs, configureargs = ("--" in args) and (args[:args.index("--")], args[args.index("--"):]) or (args, [])
 
-cd $package-$version
+def takelastwhile(xs, p):
+    ys = []
+    for x in reversed(xs):
+        if p(x):
+            ys.append(x)
+        else:
+            break
+    
+    return list(reversed(ys))
 
-if [ -f Setup.lhs ]; then
-  setup="Setup.lhs"
-else
-  setup="Setup.hs"
-fi
+def splitlast(xs, p):
+    tail = takelastwhile(xs, p)
+    return (xs[:len(xs) - len(tail)], tail)
 
-runghc $setup configure $* && runghc $setup build && sudo runghc $setup install
-exit $?
+def parsepackage(package):
+    (name, mb_version) = splitlast(package, lambda c: c in ['.'] + [str(i) for i in range(0, 10)])
+    if name[-1] == "-" and mb_version:
+        return (name[:-1], "".join(mb_version))
+    else:
+        return (package, None)
+
+packages = map(parsepackage, packageargs)
+
+for name, mb_version in packages:
+    # Abuse Hackage index page to discover most recent version. Remember:
+    #  -e /pattern/!d   == delete lines not matching this pattern
+    #  -e 's,foo,bar,g' == substitute foo for bar globally. \1 is the first capture from foo
+    #  -e '/latest/d'   == delete lines matching latest
+    if mb_version:
+        version = mb_version
+    else:
+        html = subprocess.Popen(["wget", "http://hackage.haskell.org/packages/archive/%s/" % name, "-O", "-"], stdout=subprocess.PIPE).communicate()[0]
+        versions = re.findall(r'\<img\ src\=\"\/icons\/folder\.gif\"\ alt\=\"\[DIR\]\"\>\<\/td\>\<td\>\<a\ href\=\"([^"]+)\/\"\>', html)
+        versions = sorted(filter(lambda v: v != "latest", versions))
+        version = versions[-1]
+    
+    downloads_dir = os.path.expanduser("~/Downloads")
+    target_dir = os.path.join(downloads_dir, name + "-" + version)
+    
+    # Create if not present
+    if not os.path.exists(target_dir):
+        archive_file = os.path.join(downloads_dir, name + "-" + version + ".tar.gz")
+        
+        # Download if not present
+        if not os.path.exists(archive_file):
+            subprocess.check_call(["wget", "http://hackage.haskell.org/packages/archive/%(name)s/%(version)s/%(name)s-%(version)s.tar.gz" % { "name" : name, "version" : version }, "-o", archive_file])
+        
+        # Extract
+        subprocess.check_call(["tar", "-xzf", archive_file])
+    
+    setup_file = os.path.exists(os.path.join(target_dir, "Setup.hs")) and "Setup.hs" or "Setup.lhs"
+
+    # Actually build the package
+    cabal = lambda command, sudo=False: subprocess.check_call((sudo and ["sudo"] or []) + ["runghc", setup_file] + command, cwd=target_dir)
+    if clean:
+        cabal(["clean"])
+    cabal(["configure"] + configureargs)
+    cabal(["build"])
+    cabal(["install"], sudo=True)
