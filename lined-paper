@@ -1,0 +1,26 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'prawn'
+require 'prawn/measurement_extensions'
+
+if ARGV.size < 1
+  puts "Usage: #{$0} output-file"
+  exit 1
+end
+
+Prawn::Document.generate(ARGV[0],
+    :page_layout => :portrait,
+    :left_margin => 1.5.cm,
+    :right_margin => 1.5.cm,
+    :top_margin => 1.5.cm,
+    :bottom_margin => 1.5.cm,
+    :page_size => 'A5') do
+  for i in (1..(bounds.height / 5.15.mm) + 1)
+    next if i % 2 == 0
+    
+    stroke do
+      rectangle [bounds.left, i*5.15.mm], bounds.width, 5.15.mm
+    end
+  end
+end
