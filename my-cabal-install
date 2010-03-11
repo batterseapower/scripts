@@ -13,7 +13,7 @@ if len(sys.argv) <= 1:
 args = sys.argv[1:]
 args, clean = (args[0] == "--clean") and (args[1:], True) or (args, False)
 
-packageargs, configureargs = ("--" in args) and (args[:args.index("--")], args[args.index("--"):]) or (args, [])
+packageargs, configureargs = ("--" in args) and (args[:args.index("--")], args[args.index("--") + 1:]) or (args, [])
 
 def takelastwhile(xs, p):
     ys = []
@@ -60,10 +60,10 @@ for name, mb_version in packages:
         
         # Download if not present
         if not os.path.exists(archive_file):
-            subprocess.check_call(["wget", "http://hackage.haskell.org/packages/archive/%(name)s/%(version)s/%(name)s-%(version)s.tar.gz" % { "name" : name, "version" : version }, "-o", archive_file])
+            subprocess.check_call(["wget", "http://hackage.haskell.org/packages/archive/%(name)s/%(version)s/%(name)s-%(version)s.tar.gz" % { "name" : name, "version" : version }, "-O", archive_file])
         
         # Extract
-        subprocess.check_call(["tar", "-xzf", archive_file])
+        subprocess.check_call(["tar", "-xzf", archive_file], cwd=downloads_dir)
     
     setup_file = os.path.exists(os.path.join(target_dir, "Setup.hs")) and "Setup.hs" or "Setup.lhs"
 
@@ -73,4 +73,4 @@ for name, mb_version in packages:
         cabal(["clean"])
     cabal(["configure"] + configureargs)
     cabal(["build"])
-    cabal(["install"], sudo=True)
+    cabal(["install"], sudo=("--user" not in configureargs))
