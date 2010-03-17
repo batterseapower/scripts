@@ -1,0 +1,41 @@
+#!/usr/bin/env runghc
+
+import Data.Graph
+import Data.Maybe
+
+import System.Environment
+
+import Distribution.InstalledPackageInfo
+import Distribution.Simple.Compiler
+import Distribution.Simple.GHC
+import Distribution.Simple.PackageIndex (allPackages)
+import Distribution.Simple.Program.Builtin
+import Distribution.Simple.Program.Db
+import Distribution.Text (Text(..))
+import Distribution.Package (pkgName)
+import Distribution.Verbosity
+
+
+fst3 (x, _, _) = x
+
+main = do
+    [package_name] <- getArgs
+    packages <- getAllInstalledPackages
+    
+    let pkg_id_plain_name = show . disp . pkgName
+    package_id <- case [installedPackageId ipi | ipi <- packages, pkg_id_plain_name (sourcePackageId ipi) == package_name] of
+      (ipi:_) -> return ipi
+      _       -> error "Unknown package"
+    
+    let (package_graph, vertex_lookup, key_lookup) = graphFromEdges [(pkg_id_plain_name $ sourcePackageId ipi, installedPackageId ipi, depends ipi) | ipi <- packages]
+        reachable_packages = reachable package_graph (fromJust $ key_lookup package_id)
+        dependencies = map (fst3 . vertex_lookup) $ filter (\v -> v `elem` reachable_packages) $ topSort package_graph
+    
+    putStrLn $ unwords $ reverse dependencies
+
+getAllInstalledPackages :: IO [InstalledPackageInfo]
+getAllInstalledPackages = do
+    (_, db) <- requireProgram normal ghcProgram defaultProgramDb
+    (_, db) <- requireProgram normal ghcPkgProgram db
+
+    fmap allPackages $ getInstalledPackages normal [GlobalPackageDB, UserPackageDB] db
