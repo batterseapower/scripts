@@ -67,8 +67,14 @@ for name, mb_version in packages:
     
     setup_file = os.path.exists(os.path.join(target_dir, "Setup.hs")) and "Setup.hs" or "Setup.lhs"
 
+    # Build the Setup program. Strictly speaking we could use runghc, but this is slightly more reliable
+    # because I've observed problems where a GHC extra library won't be present
+    build_setup = True
+    if build_setup:
+        subprocess.check_call(["ghc", "--make", setup_file, "-o", "setup"], cwd=target_dir)
+
     # Actually build the package
-    cabal = lambda command, sudo=False: subprocess.check_call((sudo and ["sudo"] or []) + ["runghc", setup_file] + command, cwd=target_dir)
+    cabal = lambda command, sudo=False: subprocess.check_call((sudo and ["sudo"] or []) + (build_setup and ["./setup"] or ["runghc", setup_file]) + command, cwd=target_dir)
     if clean:
         cabal(["clean"])
     cabal(["configure"] + configureargs)
