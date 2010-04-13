@@ -1,0 +1,3 @@
+#!/bin/sh
+(cd ~/Programming/Checkouts/ghc-builder-instance && screen -A -m -d -S ghc-builder builder-client)
+(cd ~/Dropbox/Wiki/ && screen -A -m -d -S gitit make start)
