@@ -1,3 +1,5 @@
 #!/bin/sh
-(cd ~/Programming/Checkouts/ghc-builder-instance && screen -A -m -d -S ghc-builder builder-client)
+if [ $(scutil --get LocalHostName) == "Perihelion" ]; then
+    (cd ~/Programming/Checkouts/ghc-builder-instance && screen -A -m -d -S ghc-builder builder-client)
+fi
 (cd ~/Dropbox/Wiki/ && screen -A -m -d -S gitit make start)
