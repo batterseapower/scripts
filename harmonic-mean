@@ -1,0 +1,12 @@
+#!/usr/bin/env runhaskell
+
+import Data.List
+
+main = interact f
+
+f :: String -> String
+f s = show harmonic_mean
+  where
+    nums = [read l :: Double | l <- lines s, l /= ""]
+    n = genericLength nums
+    harmonic_mean = n / sum (map (1.0/) nums)
