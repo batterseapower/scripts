@@ -1,0 +1,68 @@
+#!/usr/bin/env runhaskell
+{-# LANGUAGE ViewPatterns #-}
+import Data.Char
+import Data.List
+import Data.List.Split
+
+
+main = interact parse
+
+-- \begin{thebibliography}{10}
+-- 
+-- \bibitem{ConceptOfASupercompiler}
+-- Valentin~F. Turchin.
+-- \newblock The concept of a supercompiler.
+-- \newblock {\em ACM Trans. Program. Lang. Syst.}, 8(3):292--325, 1986.
+--
+-- ...
+
+parse :: String -> String
+parse = unlines . map parseOne . tail . splitOn "\\bibitem"
+
+parseOne :: String -> String
+parseOne s = dropTrailingDot title ++ ", " ++ dropTrailingDot author ++ ": " ++ venue
+  where
+    -- {ConceptOfASupercompiler}
+    -- Valentin~F. Turchin.
+    -- \newblock The concept of a supercompiler.
+    -- \newblock {\em ACM Trans. Program. Lang. Syst.}, 8(3):292--325, 1986.
+    
+    -- {VerificationAsSpecializationOfInterpreters}
+    -- Alexei~P. Lisitsa and Andrei~P. Nemytykh.
+    -- \newblock {Verification as specialization of interpreters with respect to
+    --   data}.
+    -- \newblock In {\em Proocedings of First International Workshop on
+    --   Metacomputation in Russia}, pages 94--112, 2008.
+    _latex_name:author:rest0 = map deTex (lines s)
+    (title, rest1) = takeBlock rest0
+    (venue, _) = takeBlock rest1
+
+takeBlock :: [String] -> (String, [String])
+takeBlock (l:ls) = (unwords $ map stripLeft $ drop (length "\\newblock") l : block, rest)
+  where (block, rest) = span (\l -> not (null l) && isSpace (head l)) ls
+
+stripLeft :: String -> String
+stripLeft = dropWhile isSpace
+
+dropTrailingDot :: String -> String
+dropTrailingDot s | last s == '.' = init s
+                  | otherwise     = s
+
+deTex :: String -> String
+deTex = replace "--" "-" . replace "  " " " . replace "~" " " . replace "\\em" "" . replace "{" "" . replace "}" "" . replace "{\\o}" "o" . replace "\\\"{u}" "u"
+
+
+replace :: Eq a => [a] -> [a] -> [a] -> [a]
+replace [] newSub list = join newSub list
+  where
+    join :: [a] -> [a] -> [a]
+    join glue [h]    = [h]
+    join glue (h:ts) = h : glue ++ join glue ts
+    join _    []     = []
+replace oldSub newSub list = _replace list
+  where
+    len = length oldSub
+
+    _replace [] = []
+    _replace list@(h:ts) | isPrefixOf oldSub list = newSub ++ _replace (drop len list)
+                         | otherwise              = h : _replace ts
