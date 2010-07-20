@@ -1,0 +1,10 @@
+#!/usr/bin/env runhaskell
+import System.Environment
+import Data.List
+
+main = interact $ \text -> let rows = map words (lines text)
+                               cols = transpose rows
+                               rows' = transpose $ map (\col -> map (padTo (maximum (map length col))) col) cols
+                           in unlines $ map unwords rows'
+
+padTo n s = s ++ replicate (n - length s) ' '
