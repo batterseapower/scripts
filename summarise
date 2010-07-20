@@ -1,0 +1,117 @@
+#!/usr/bin/env runhaskell
+{-# LANGUAGE PatternGuards #-}
+import Control.Arrow ((&&&))
+
+import Data.Char
+import Data.List
+import Data.List.Split
+import Data.Maybe
+
+import Numeric
+
+main = interact summarise
+
+{-
+append       & 0.0s  & 0.88 & 0.86 & 0.85   & 1.29    & 0.0s  & 1.00 & 0.89 & 0.87     & 3.24     & 0.0s  & 1.03  & 0.92 & 0.87 & 3.24   \\
+exp3\_8      & 0.8s  & 1.34 & 0.96 & 1.00   & 6.59    & 8.7s  & 2.85 & 0.59 & 0.67     & 85.17    & 15.4s & 3.35  & 0.55 & 0.67 & \!\!\!\!\!114.31 \\
+sumtree      & 0.1s  & 1.01 & 0.13 & 0.00   & 1.50    & 0.0s  & 1.02 & 0.14 & 0.00     & 2.46     & 0.2s  & 1.24  & 0.68 & 0.93 & 9.09   \\
+tak          & 0.1s  & 0.86 & 0.81 & 655.04 & 0.59    & 0.1s  & 1.34 & 0.74 & 18644.34 & 7.22     & N/A   & N/A   & N/A  & N/A  & N/A    \\
+treeflip     & 0.1s  & 1.03 & 0.56 & 0.45   & 1.99    & 0.0s  & 1.02 & 0.13 & 0.05     & 2.53     & 0.2s  & 1.47  & 0.81 & 0.91 & 19.40  \\
+wheel-sieve1 & N/A   & N/A  & N/A  & N/A    & N/A     & 22.2s & 7.87 & 0.90 & 0.53     & 71.07    & 16.8s & 10.61 & 1.00 & 0.54 & 71.47  \\
+-}
+
+{-
+append       & 0.0s  & 0.88 & 0.86 & 0.85   & 1.29	& 0.0s  & 1.00 & 0.89 & 0.87     & 3.24 	& 0.0s  & 1.03  & 0.92 & 0.87 & 3.24   \\
+bernouilli   & 5.8s  & 1.63 & 0.98 & 0.97   & 3.76	& 0.1s  & 1.07 & 0.98 & 0.95     & 2.26 	& 0.1s  & 1.07  & 0.98 & 0.95 & 2.24   \\
+digitsofe2   & 4.2s  & 1.24 & 0.32 & 0.46   & 1.15	& 0.1s  & 1.07 & 1.17 & 1.08     & 2.81 	& 0.1s  & 1.08  & 1.18 & 1.09 & 2.79   \\
+exp3\_8      & 0.8s  & 1.34 & 0.96 & 1.00   & 6.59	& 8.7s  & 2.85 & 0.59 & 0.67     & 85.17	& 15.4s & 3.35  & 0.55 & 0.67 & \!\!\!\!\!114.31 \\
+factorial    & 0.0s  & 0.99 & 0.95 & 1.00   & 0.77	& 0.0s  & 0.96 & 0.99 & 1.00     & 1.00 	& 0.0s  & 0.98  & 1.05 & 1.00 & 0.91   \\
+primes       & 0.1s  & 1.04 & 0.63 & 0.99   & 0.79	& 0.0s  & 0.98 & 0.72 & 1.07     & 0.87 	& 0.0s  & 0.98  & 0.71 & 1.07 & 0.80   \\
+raytracer    & 0.0s  & 1.00 & 0.57 & 0.44   & 1.54	& 0.0s  & 1.00 & 0.52 & 0.45     & 1.37 	& 0.0s  & 1.00  & 0.51 & 0.45 & 1.38   \\
+rfib         & 0.0s  & 0.94 & 0.93 & 1.00   & 0.87	& 0.0s  & 1.00 & 0.67 & 1.00     & 2.00 	& 0.0s  & 1.00  & 0.67 & 1.01 & 2.00   \\
+sumsquare    & 19.5s & 1.45 & 0.36 & 0.00   & 7.38	& 2.3s  & 1.97 & 0.05 & 0.00     & 20.78	& 3.0s  & 1.95  & 0.06 & 0.00 & 21.15  \\
+sumtree      & 0.1s  & 1.01 & 0.13 & 0.00   & 1.50	& 0.0s  & 1.02 & 0.14 & 0.00     & 2.46 	& 0.2s  & 1.24  & 0.68 & 0.93 & 9.09   \\
+tak          & 0.1s  & 0.86 & 0.81 & 655.04 & 0.59	& 0.1s  & 1.34 & 0.74 & 18644.34 & 7.22 	& N/A   & N/A   & N/A  & N/A  & N/A    \\
+treeflip     & 0.1s  & 1.03 & 0.56 & 0.45   & 1.99	& 0.0s  & 1.02 & 0.13 & 0.05     & 2.53 	& 0.2s  & 1.47  & 0.81 & 0.91 & 19.40  \\
+wheel-sieve1 & N/A   & N/A  & N/A  & N/A    & N/A 	& 22.2s & 7.87 & 0.90 & 0.53     & 71.07	& 16.8s & 10.61 & 1.00 & 0.54 & 71.47  \\
+wheel-sieve2 & N/A   & N/A  & N/A  & N/A    & N/A 	& 1.3s  & 3.16 & 1.55 & 1.21     & 18.35	& 1.4s  & 3.06  & 1.55 & 1.21 & 18.24  \\
+x2n1         & 0.1s  & 1.06 & 0.92 & 0.99   & 1.39	& 0.0s  & 1.10 & 0.99 & 0.95     & 1.21 	& 0.0s  & 1.15  & 0.99 & 0.95 & 1.18   \\
+-}
+
+summarise :: String -> String
+summarise = pretty . summaries . tabular
+
+tabular :: String -> [[String]]
+tabular = map (splitOn "& " . dropSuffix "\\\\") . lines
+
+summaries :: [[String]] -> [[String]]
+summaries = transpose . (uncurry (:) . ((summaryHeader . head) &&& (map summary . tail))) . transpose
+
+summaryHeader :: [String] -> [String]
+summaryHeader ls = ls ++ padFieldsToMatch ls ["Average", "Minimum", "Maximum"]
+
+summary :: [String] -> [String]
+summary ls
+  | any ("s" `isSuffixOf`) (map strip ls)
+  , let xs = readMany (map (dropLast 1 . strip) ls) :: [Double]
+  = ls ++ padFieldsToMatch ls [showDP 1 (mean xs) ++ "s", showDP 1 (minimum xs) ++ "s", showDP 1 (maximum xs) ++ "s"]
+  | let xs = readManyWithDefault 1.0 (map (strip . replace "\\!" "") ls) :: [Double]
+  = ls ++ padFieldsToMatch ls [showDP 2 (mean xs), showDP 2 (minimum xs), showDP 2 (maximum xs)]
+
+padFieldsToMatch :: [[a]] -> [String] -> [String]
+padFieldsToMatch ls = map (padTo (maximum (map length ls)))
+
+padTo :: Int -> String -> String
+padTo n xs = take (n `max` length xs) (xs ++ repeat ' ')
+
+
+readMany :: Read a => [String] -> [a]
+readMany xs = [y | x <- xs, Just y <- [readOne x]]
+
+readManyWithDefault :: Read a => a -> [String] -> [a]
+readManyWithDefault def xs = [fromMaybe def (readOne x) | x <- xs]
+
+readOne :: Read a => String -> Maybe a
+readOne s = case reads s of ((x, []):_) -> Just x; _ -> Nothing
+
+dropLast :: Int -> [a] -> [a]
+dropLast n = reverse . drop n . reverse
+
+liat :: [a] -> [a]
+liat = reverse . tail . reverse
+
+pretty :: [[String]] -> String
+pretty = unlines . map ((++ "\\\\") . intercalate "& ")
+
+mean :: Fractional a => [a] -> a
+mean xs = sum xs / fromIntegral (length xs)
+
+
+strip :: String -> String
+strip = dropWhile isSpace . reverse . dropWhile isSpace . reverse
+
+
+showDP :: RealFloat a => Int -> a -> String
+showDP n x = showFFloat (Just n) x ""
+
+
+replace::(Eq a) => [a] -> [a] -> [a] -> [a]
+replace [] newSub list = join newSub list
+  where
+    join :: [a] -> [a] -> [a]
+    join glue [h] = [h]
+    join glue (h:ts) = h : glue ++ join glue ts
+    join _ [] = []
+replace oldSub newSub list = _replace list
+  where
+    _replace list@(h:ts) = if isPrefixOf oldSub list
+                           then newSub ++ _replace (drop len list)
+                           else h : _replace ts
+
+    _replace [] = []
+    len = length oldSub
+
+
+dropSuffix :: Eq a => [a] -> [a] -> [a]
+dropSuffix what xs | what `isSuffixOf` xs = dropLast (length what) xs
+                   | otherwise            = xs
