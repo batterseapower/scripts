@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# Because there is no way to globally override the sendmail-command
+darcs send -v --sendmail-command="darcs-sendmail """%t""" %<" "$@"
