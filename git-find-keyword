@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# Finds commits that changed the number of occurrences of the keyword
+git log -S"$1" -- .
+
+# Find commits that changed a line containing the keyword (interpreted as a regex)
+#git grep $1 $(git rev-list --all)
