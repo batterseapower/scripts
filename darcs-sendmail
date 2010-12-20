@@ -1,0 +1,85 @@
+#!/usr/bin/env python
+
+# Based on the script to technonik from <http://rainforce.org/python/sendmail.py>
+# Modified by Max Bolingbroke to add Keychain integration on 20th December 2010.
+#
+# Replacement for sendmail utility that uses SMTP protocol for delivery.
+# By default, sendmail reads message body from stdin and delivers it to
+# address(es) passed on the commandline.
+# http://www.feep.net/sendmail/tutorial/run/commandline.html
+#
+# Various sendmail options are not supported, because the script was
+# developed as a simple way to send mails from console tools like Darcs
+# through GMail.
+#
+# With Darcs 1.x.x on windows use:
+# darcs send -v --sendmail-command="c:\path\to\python sendmail.py """%t""" %<"
+# or from batch file:
+# darcs send -v --sendmail-command="c:\path\to\python sendmail.py """%%t""" %%<"
+#
+# techtonik // php.net 2008-03-30
+
+
+# --*- Username/password -*--
+#
+import subprocess
+import re
+
+p = subprocess.Popen(["security", "find-generic-password", "-l", "Google Service: Google Notifier", "-g"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+output = p.stdout.read() + "\n" + p.stderr.read() # For some reason the password is sent on stderr
+
+LOGIN = re.search(r'"acct"<blob>="([^"]*)"', output).group(1)
+PASS = re.search(r'password: "([^"]*)"', output).group(1)
+
+
+# --*- Configuration -*--
+#
+MAILSERV = "smtp.gmail.com"
+# Secure TLS connections are required by GMail
+SECURE = 1
+SMTPDEBUG = 0
+
+
+# --*- Parameters -*--
+#
+FROM = "anything@example.com"
+TO = "anything@example.com"
+
+
+
+import sys
+import smtplib
+from getpass import getpass
+
+def sendmail(sndr, rcpt, body):
+
+  # Even though To: and Cc: headers are present in the message, SMTP
+  # protocol still requires that all recepient addresses are passed
+  # to server explicitly
+
+  server = smtplib.SMTP()
+  if SMTPDEBUG:
+    server.set_debuglevel(1)
+  server.connect(MAILSERV)
+  if SECURE:
+    server.ehlo()
+    server.starttls()
+    server.ehlo()
+  if LOGIN != None:
+    if PASS == None:
+      pswd = getpass()
+    else:
+      pswd = PASS
+    server.login(LOGIN, pswd)
+  server.sendmail(sndr, rcpt, body)
+  server.quit()
+
+
+
+if __name__ == "__main__":
+  if len(sys.argv) > 1:
+    to = sys.argv[1:]
+  else:
+    to = TO
+  mailbody = sys.stdin.read()
+  sendmail(FROM, to, mailbody)
