@@ -1,0 +1,8 @@
+#!/bin/sh
+
+echo "=== Files not containing tabs:"
+find . -iname '*.lhs' -o -iname '*.hs' | xargs grep -v -R -H -l $'\t'
+
+echo
+echo "=== Files containing tabs:"
+find . -iname '*.lhs' -o -iname '*.hs' | xargs grep -R -H -l $'\t'
