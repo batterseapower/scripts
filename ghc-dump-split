@@ -25,20 +25,20 @@ for filename in sys.argv[1:]:
     contents = file.read()
     file.close()
     
-    index = 1
+    overall_index = 1
     seen_segments = {}
     pending_segment = None
     for segment in drop(seperator_regex.split(contents), 1):
         segment_stripped = segment.strip()
         
         if pending_segment:
-            output_filename = filename + '.' + filename_sanitize(pending_segment)
+            output_filename = filename + '.' + str(overall_index) + '.' + filename_sanitize(pending_segment)
             output_file = open(output_filename, 'w')
             output_file.write(segment_stripped)
             output_file.close()
             
             pending_segment = None
-            index = index + 1
+            overall_index = overall_index + 1
         else:
             # Work out an index number for the segment, so that duplicate segment
             # names do not get written to identical files
