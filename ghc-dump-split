@@ -32,7 +32,7 @@ for filename in sys.argv[1:]:
         segment_stripped = segment.strip()
         
         if pending_segment:
-            output_filename = filename + '.' + str(overall_index) + '.' + filename_sanitize(pending_segment)
+            output_filename = filename + '.' + format(overall_index, "0>2") + '.' + filename_sanitize(pending_segment)
             output_file = open(output_filename, 'w')
             output_file.write(segment_stripped)
             output_file.close()
