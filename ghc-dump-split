@@ -5,7 +5,7 @@ import re, sys, itertools
 
 # Don't match on the end of line marker because some debug traces will
 # accidentally append to that line
-seperator_regex = re.compile("^==================== ([^=]+) ====================", re.M)
+seperator_regex = re.compile("^==================== ([^$]+) ====================", re.M)
 
 SANITIZE_PAIRS = {
         ' ' : '',
