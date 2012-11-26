@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+
+if [ -z "$1" ]; then
+    echo "Usage: `basename $0` FILES"
+    exit 1
+fi
+
+until [ -z "$1" ]; do
+    echo $1
+    oggdec -Q $1 -o /tmp/$!.wav && lame -V2 /tmp/$!.wav "${1%.ogg}.mp3"
+    rm /tmp/$!.wav
+    shift
+done
